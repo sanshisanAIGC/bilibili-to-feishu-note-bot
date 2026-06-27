@@ -1,0 +1,18 @@
+version: "3.8"
+services:
+  bot:
+    build: .
+    container_name: bilibili-feishu-bot
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+    env_file:
+      - .env
+    volumes:
+      - ./processed_ids.txt:/app/processed_ids.txt
+      - whisper_cache:/root/.cache/huggingface
+    ports:
+      - "7777:7777"
+
+volumes:
+  whisper_cache:

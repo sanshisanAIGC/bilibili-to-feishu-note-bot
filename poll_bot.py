@@ -88,7 +88,17 @@ def main():
         feishu_app_secret=FEISHU_APP_SECRET,
     )
 
+    # 持久化已处理的消息 ID（重启不重复处理）
+    IDS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "processed_ids.txt")
     processed_msg_ids = set()
+    if os.path.exists(IDS_FILE):
+        with open(IDS_FILE) as f:
+            processed_msg_ids = set(f.read().splitlines())
+
+    def save_processed(msg_id):
+        processed_msg_ids.add(msg_id)
+        with open(IDS_FILE, "a") as f:
+            f.write(msg_id + "\n")
 
     while True:
         try:
@@ -150,8 +160,8 @@ def main():
                     if not link:
                         continue
 
-                    # Mark as processed
-                    processed_msg_ids.add(msg_id)
+                    # Mark as processed (persistent)
+                    save_processed(msg_id)
 
                     chat_name = chat.get("name", "group")
                     logger.info(f"Processing @bot message in [{chat_name}]: {link[:60]}")
