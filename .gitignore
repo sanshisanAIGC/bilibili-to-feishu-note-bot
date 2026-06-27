@@ -1,0 +1,8 @@
+.env
+*.pyc
+__pycache__/
+downloads/
+.claude/
+test_output.md
+test_subtitles.json
+screenshot_preview.jpg

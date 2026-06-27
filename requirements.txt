@@ -1,0 +1,17 @@
+# 飞书 SDK
+lark-oapi>=1.6.0
+
+# HTTP 客户端
+httpx>=0.27.0
+
+# 本地 Whisper 转录
+faster-whisper>=1.0.0
+
+# B站音频下载
+yt-dlp>=2024.0.0
+
+# DeepSeek API (OpenAI 兼容)
+openai>=1.30.0
+
+# 环境变量管理
+python-dotenv>=1.0.0
