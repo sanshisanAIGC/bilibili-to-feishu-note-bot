@@ -14,8 +14,8 @@ from config import (
 
 from src.pipeline import VideoNotePipeline
 
-# 上次 OAuth 拿到的 user token
-USER_TOKEN = "<your-user-token>"
+# 飞书 user access token（从 .env 读取，仅测试用）
+USER_TOKEN = os.getenv("FEISHU_USER_TOKEN", "")
 
 def main():
     bvid = "BV1Bt7K6FEqD"
