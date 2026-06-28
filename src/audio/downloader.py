@@ -1,17 +1,34 @@
 """
 B站视频音频下载模块
 
-使用 yt-dlp 下载视频音频，支持通过浏览器 cookie 认证。
+使用 yt-dlp 下载视频音频，支持浏览器 cookie 和 SESSDATA cookie 文件。
 """
 
 import logging
 import os
+import tempfile
 from pathlib import Path
 from typing import Optional
+from urllib.parse import unquote
 
 import yt_dlp
 
 logger = logging.getLogger(__name__)
+
+
+def _make_cookiefile(sessdata: str) -> Optional[str]:
+    """从 SESSDATA 创建临时 Netscape cookie 文件供 yt-dlp 使用。"""
+    if not sessdata:
+        return None
+    sessdata = unquote(sessdata)
+    f = tempfile.NamedTemporaryFile(
+        mode='w', suffix='.txt', delete=False, prefix='bili_cookie_'
+    )
+    f.write("# Netscape HTTP Cookie File\n")
+    f.write(f".bilibili.com\tTRUE\t/\tFALSE\t0\tSESSDATA\t{sessdata}\n")
+    f.close()
+    logger.info(f"从 SESSDATA 创建临时 cookie 文件: {f.name}")
+    return f.name
 
 
 def download_audio(
@@ -19,6 +36,7 @@ def download_audio(
     output_dir: str = "./downloads",
     cookie_browser: Optional[str] = None,
     cookiefile: Optional[str] = None,
+    sessdata: str = "",
 ) -> dict:
     """
     下载 B站视频的音频。
@@ -28,6 +46,7 @@ def download_audio(
         output_dir: 输出目录
         cookie_browser: 浏览器名称（如 chrome, firefox）用于读取 cookie
         cookiefile: Cookie 文件路径（与 cookie_browser 二选一）
+        sessdata: B站 SESSDATA cookie 字符串（headless 服务器场景，优先级高于 cookie_browser）
 
     Returns:
         dict: {
@@ -61,10 +80,14 @@ def download_audio(
         "extractaudio": True,
     }
 
-    # Cookie 配置
+    # Cookie 配置（优先级: cookiefile > sessdata > cookie_browser）
+    tmp_cookiefile = None
     if cookiefile:
         ydl_opts["cookiefile"] = cookiefile
         logger.info(f"使用 cookie 文件: {cookiefile}")
+    elif sessdata:
+        tmp_cookiefile = _make_cookiefile(sessdata)
+        ydl_opts["cookiefile"] = tmp_cookiefile
     elif cookie_browser:
         ydl_opts["cookiesfrombrowser"] = (cookie_browser,)
         logger.info(f"使用浏览器 cookie: {cookie_browser}")
@@ -127,6 +150,9 @@ def download_audio(
                 "3. 或使用 cookie 文件方式"
             ) from e
         raise RuntimeError(f"yt-dlp 下载失败: {e}") from e
+    finally:
+        if tmp_cookiefile and os.path.exists(tmp_cookiefile):
+            os.unlink(tmp_cookiefile)
 
 
 def download_subtitles(
@@ -134,6 +160,7 @@ def download_subtitles(
     output_dir: str = "./downloads",
     cookie_browser: Optional[str] = None,
     cookiefile: Optional[str] = None,
+    sessdata: str = "",
 ) -> list[dict]:
     """
     使用 yt-dlp 下载 B站视频字幕（作为首选 fallback）。
@@ -163,8 +190,12 @@ def download_subtitles(
         "convertsubs": "json",   # 但 yt-dlp 默认转 srt，我们用 extract_info 取原始数据
     }
 
+    tmp_cookiefile = None
     if cookiefile:
         ydl_opts["cookiefile"] = cookiefile
+    elif sessdata:
+        tmp_cookiefile = _make_cookiefile(sessdata)
+        ydl_opts["cookiefile"] = tmp_cookiefile
     elif cookie_browser:
         ydl_opts["cookiesfrombrowser"] = (cookie_browser,)
 
@@ -253,16 +284,20 @@ def download_subtitles(
     except Exception as e:
         logger.warning(f"yt-dlp 字幕下载失败: {e}")
         return []
+    finally:
+        if tmp_cookiefile and os.path.exists(tmp_cookiefile):
+            os.unlink(tmp_cookiefile)
 
 
 def download_audio_for_bvid(
     bvid: str,
     output_dir: str = "./downloads",
     cookie_browser: Optional[str] = None,
+    sessdata: str = "",
 ) -> dict:
     """通过 BV 号下载音频的便捷函数。"""
     url = f"https://www.bilibili.com/video/{bvid}"
-    return download_audio(url, output_dir, cookie_browser)
+    return download_audio(url, output_dir, cookie_browser, sessdata=sessdata)
 
 
 def cleanup_audio(filepath: str) -> bool:

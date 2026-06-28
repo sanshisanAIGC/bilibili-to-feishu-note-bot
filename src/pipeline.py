@@ -152,6 +152,7 @@ class VideoNotePipeline:
                         video_info.bvid,
                         output_dir=self.audio_download_dir,
                         cookie_browser=self.audio_cookie_browser,
+                        sessdata=self.bilibili_sessdata,
                     )
 
                     if raw_subtitles:
@@ -174,6 +175,7 @@ class VideoNotePipeline:
                             video_info.bvid,
                             output_dir=self.audio_download_dir,
                             cookie_browser=self.audio_cookie_browser,
+                            sessdata=self.bilibili_sessdata,
                         )
 
                         notify(f"Audio downloaded: {audio_result['title']}")

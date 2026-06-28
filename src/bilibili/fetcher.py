@@ -199,15 +199,19 @@ def fetch_subtitles(aid: int, cid: int, sessdata: str = "") -> list[SubtitleEntr
             logger.info("该视频没有官方字幕（所有 API 均未返回字幕）")
             return []
 
-        # 优先选择中文字幕
+        # 优先 AI 中文字幕（最完整），其次普通中文字幕
         selected = None
         for sub in subtitle_list:
-            if sub.get("lan") in ("zh-Hans", "zh-CN", "zh", "ai-zh"):
+            if sub.get("lan", "").startswith("ai-"):
                 selected = sub
                 break
-
         if selected is None:
-            selected = subtitle_list[0]  # 取第一个可用字幕
+            for sub in subtitle_list:
+                if sub.get("lan") in ("zh-Hans", "zh-CN", "zh"):
+                    selected = sub
+                    break
+        if selected is None:
+            selected = subtitle_list[0]
 
         subtitle_url = selected.get("subtitle_url", "")
         if not subtitle_url:
